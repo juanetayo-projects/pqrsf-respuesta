@@ -555,7 +555,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const roleEl = document.getElementById('headerUserRole');
   if (nameEl) nameEl.textContent = currentUser?.nombre || session.user.email;
   if (roleEl) {
-    roleEl.textContent = currentUser?.rol === 'admin' ? 'Administrador' :
+    const rol = (currentUser?.rol || '').toLowerCase();
+    roleEl.textContent = rol === 'admin' ? 'Administrador' :
                          currentUser?.proceso ? currentUser.proceso : 'Analista';
   }
 

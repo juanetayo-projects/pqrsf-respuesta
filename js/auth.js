@@ -61,7 +61,10 @@ async function loadUserProfile() {
   /* Intenta con RPC SECURITY DEFINER (bypass RLS) */
   try {
     const { data, error } = await db.rpc('get_my_console_profile');
-    if (!error && data) return data;
+    if (!error && data) {
+      // Supabase puede devolver objeto o array de un elemento
+      return Array.isArray(data) ? (data[0] ?? null) : data;
+    }
   } catch (_) {}
 
   /* Fallback: query directa */
