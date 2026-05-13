@@ -3,16 +3,13 @@
    Clínica de Alta Complejidad Santa Bárbara
 ================================================================ */
 
-/* ── Supabase ───────────────────────────────────────────────── */
-const SUPABASE_URL = 'https://cdarbygwhtwkdgkelktw.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_hBoCRcO2ozNu8l9lcRSTOw_NHWUZ-Qb';
-const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
 /* ── Estado global ──────────────────────────────────────────── */
+// db está definido en auth.js (cargado antes)
 let currentStep     = 1;
 const TOTAL_STEPS   = 4;   // pasos visibles (5 = éxito)
 let reporteActual   = null; // datos del reporte encontrado
 let selectedFile    = null;
+let currentUser     = null; // perfil de consola_perfiles
 
 /* ── Colores y config por tipo ──────────────────────────────── */
 const TIPO_CONFIG = {
@@ -126,6 +123,27 @@ async function buscarRadicado() {
   if (error || !data) {
     notFound.style.display = 'block';
     return;
+  }
+
+  // ── Filtro por servicio: analistas solo ven su proceso ──────
+  if (currentUser && currentUser.rol !== 'admin') {
+    const userProceso = (currentUser.proceso || '').trim().toLowerCase();
+    if (userProceso) {
+      // proceso en reportes puede ser lista separada por comas (multi-select)
+      const procesosReporte = (data.proceso || '')
+        .split(',').map(p => p.trim().toLowerCase());
+      if (!procesosReporte.includes(userProceso)) {
+        notFound.innerHTML = `
+          <i class="fa-solid fa-lock" style="color:#dc2626"></i>
+          <strong>Sin acceso a este radicado</strong>
+          <p style="margin-top:6px;font-size:13px;">
+            Este radicado pertenece a un proceso diferente al suyo.<br>
+            Si cree que es un error, contacte al administrador.
+          </p>`;
+        notFound.style.display = 'block';
+        return;
+      }
+    }
   }
 
   reporteActual = data;
@@ -524,7 +542,23 @@ function setDateDefaults() {
 }
 
 /* ── Init ───────────────────────────────────────────────────── */
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  // 1. Guard: redirige a login si no hay sesión
+  const session = await requireAuth();
+  if (!session) return;
+
+  // 2. Cargar perfil del usuario
+  currentUser = await loadUserProfile();
+
+  // 3. Mostrar nombre y rol en el header
+  const nameEl = document.getElementById('headerUserName');
+  const roleEl = document.getElementById('headerUserRole');
+  if (nameEl) nameEl.textContent = currentUser?.nombre || session.user.email;
+  if (roleEl) {
+    roleEl.textContent = currentUser?.rol === 'admin' ? 'Administrador' :
+                         currentUser?.proceso ? currentUser.proceso : 'Analista';
+  }
+
   renderStepIndicator();
   updateProgress();
 });

@@ -3,263 +3,66 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Respuesta PQRSF – Clínica Santa Bárbara</title>
+  <title>Acceso – Respuesta PQRSF · Clínica Santa Bárbara</title>
   <link rel="stylesheet" href="css/styles.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 </head>
-<body>
+<body class="login-body">
 
-<!-- Loading overlay -->
-<div class="loading-overlay" id="loadingOverlay">
-  <div class="spinner"></div>
-  <span id="loadingMsg">Procesando…</span>
+<div class="login-page">
+  <div class="login-card">
+
+    <div class="login-logo">
+      <img src="assets/logo-wide.png" alt="Clínica Santa Bárbara"
+           onerror="this.src='assets/logo.png'" />
+    </div>
+
+    <div class="login-header">
+      <div class="login-icon"><i class="fa-solid fa-reply-all"></i></div>
+      <h1>Respuesta PQRSF</h1>
+      <p>Ingrese sus credenciales para acceder al módulo de registro de respuestas</p>
+    </div>
+
+    <form id="loginForm" onsubmit="doLogin(event)" autocomplete="on">
+
+      <div class="login-field">
+        <label for="loginEmail"><i class="fa-solid fa-envelope"></i> Correo electrónico</label>
+        <input type="email" id="loginEmail"
+               placeholder="usuario@cacsantabarbara.co"
+               required autocomplete="username" />
+      </div>
+
+      <div class="login-field">
+        <label for="loginPwd"><i class="fa-solid fa-lock"></i> Contraseña</label>
+        <div class="pwd-wrap">
+          <input type="password" id="loginPwd"
+                 placeholder="••••••••"
+                 required autocomplete="current-password" />
+          <button type="button" class="pwd-toggle" onclick="togglePwd()" tabindex="-1">
+            <i class="fa-solid fa-eye" id="pwdIcon"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="login-error" id="loginError" style="display:none"></div>
+
+      <button type="submit" class="btn-login" id="btnLogin">
+        <i class="fa-solid fa-right-to-bracket"></i> Iniciar sesión
+      </button>
+
+    </form>
+
+    <div class="login-footer-note">
+      <i class="fa-solid fa-shield-halved"></i>
+      Acceso restringido a personal autorizado de la institución
+    </div>
+
+  </div>
 </div>
 
-<!-- ── HEADER ─────────────────────────────────────────────────── -->
-<header class="site-header">
-  <div class="header-inner">
-    <img src="assets/logo-wide.png" alt="Clínica de Alta Complejidad Santa Bárbara" class="logo" onerror="this.src='assets/logo.png'" />
-    <div class="header-text">
-      <span class="header-tag">Sistema PQRSF</span>
-      <span class="header-subtitle">Registro de Respuesta Oficial</span>
-    </div>
-  </div>
-</header>
-
-<!-- ── HERO ───────────────────────────────────────────────────── -->
-<section class="hero" id="hero">
-  <div class="hero-content">
-    <div class="hero-icon"><i class="fa-solid fa-reply-all"></i></div>
-    <h1>Registrar Respuesta PQRSF</h1>
-    <p>Ingrese el número de radicado para consultar la solicitud y registrar la respuesta oficial al usuario.</p>
-    <button class="btn-primary btn-lg" onclick="startForm()">
-      <i class="fa-solid fa-magnifying-glass"></i> Buscar radicado
-    </button>
-  </div>
-</section>
-
-<!-- ── FORM WIZARD ────────────────────────────────────────────── -->
-<section class="form-section" id="formSection" style="display:none">
-  <div class="form-container">
-
-    <!-- Progress bar -->
-    <div class="progress-wrap">
-      <div class="progress-bar" id="progressBar"></div>
-    </div>
-    <div class="step-indicator" id="stepIndicator"></div>
-
-    <!-- ══════════════════════════════════════════════
-         STEP 1: Buscar radicado
-    ══════════════════════════════════════════════ -->
-    <div class="step active" id="step1">
-      <div class="step-header">
-        <div class="step-num">1</div>
-        <div>
-          <h2>Buscar radicado PQRSF</h2>
-          <p>Ingrese el número de radicado para cargar los datos de la solicitud</p>
-        </div>
-      </div>
-
-      <!-- Search input -->
-      <div class="search-wrap">
-        <input type="text"
-               id="inputRadicado"
-               placeholder="Ej: PQRSF-000001  o  1"
-               oninput="this.value = this.value.toUpperCase()"
-               onkeydown="if(event.key==='Enter') buscarRadicado()" />
-        <button class="btn-search" onclick="buscarRadicado()">
-          <i class="fa-solid fa-magnifying-glass"></i> Buscar
-        </button>
-      </div>
-
-      <!-- PQRSF card (hidden until found) -->
-      <div id="pqrsfCardWrap" style="display:none"></div>
-
-      <!-- Not found placeholder -->
-      <div id="notFoundState" class="not-found-state" style="display:none">
-        <i class="fa-solid fa-circle-xmark"></i>
-        <strong>Radicado no encontrado</strong>
-        <p style="margin-top:6px;font-size:13px;">Verifique el número e intente de nuevo.</p>
-      </div>
-
-      <div class="step-error" id="err1"></div>
-      <div class="step-nav">
-        <button class="btn-secondary" onclick="goHero()"><i class="fa-solid fa-house"></i> Inicio</button>
-        <button class="btn-primary" id="btnStep1Next" onclick="nextStep(1)" style="display:none">
-          Continuar <i class="fa-solid fa-arrow-right"></i>
-        </button>
-      </div>
-    </div>
-
-    <!-- ══════════════════════════════════════════════
-         STEP 2: Datos de la respuesta
-    ══════════════════════════════════════════════ -->
-    <div class="step" id="step2">
-      <div class="step-header">
-        <div class="step-num">2</div>
-        <div>
-          <h2>Datos de la respuesta</h2>
-          <p>Complete la información de la respuesta oficial al usuario</p>
-        </div>
-      </div>
-
-      <!-- Mini-card del radicado -->
-      <div id="miniCard" style="margin-bottom:24px;"></div>
-
-      <div class="form-grid">
-
-        <div class="field-wrap">
-          <label><i class="fa-solid fa-calendar-check"></i> Fecha de respuesta <span class="req">*</span></label>
-          <input type="date" id="fecha_respuesta" required />
-        </div>
-
-        <div class="field-wrap">
-          <label><i class="fa-solid fa-user-tie"></i> Respondido por (nombre) <span class="req">*</span></label>
-          <input type="text" id="respondido_por_nombre" placeholder="Nombre completo del responsable" required />
-        </div>
-
-        <div class="field-wrap full">
-          <label><i class="fa-solid fa-envelope"></i> Correo del responsable</label>
-          <input type="email" id="respondido_por_email" placeholder="correo@cacsantabarbara.co" />
-          <small class="field-hint">Recibirá copia de la notificación enviada al usuario</small>
-        </div>
-
-        <div class="field-wrap full">
-          <label><i class="fa-solid fa-pen-to-square"></i> Respuesta oficial <span class="req">*</span></label>
-          <textarea id="respuesta_texto" rows="6"
-            placeholder="Escriba la respuesta oficial que se comunicará al usuario…"
-            required oninput="updateCharCount()"></textarea>
-          <div class="char-count"><span id="charCount">0</span> / 2000 caracteres</div>
-        </div>
-
-        <div class="field-wrap full">
-          <label><i class="fa-solid fa-user-nurse"></i> Colaborador involucrado en la manifestación</label>
-          <input type="text" id="colaborador" placeholder="Nombre del colaborador (si aplica)" />
-        </div>
-
-      </div>
-      <div class="step-error" id="err2"></div>
-      <div class="step-nav">
-        <button class="btn-secondary" onclick="prevStep(2)"><i class="fa-solid fa-arrow-left"></i> Anterior</button>
-        <button class="btn-primary" onclick="nextStep(2)">Siguiente <i class="fa-solid fa-arrow-right"></i></button>
-      </div>
-    </div>
-
-    <!-- ══════════════════════════════════════════════
-         STEP 3: Documento adjunto
-    ══════════════════════════════════════════════ -->
-    <div class="step" id="step3">
-      <div class="step-header">
-        <div class="step-num">3</div>
-        <div>
-          <h2>Documento adjunto</h2>
-          <p>Adjunte la comunicación de respuesta o cualquier documento soporte <span class="optional">(opcional)</span></p>
-        </div>
-      </div>
-
-      <div class="form-grid">
-        <div class="field-wrap full">
-          <label><i class="fa-solid fa-paperclip"></i> Documento adjunto <span class="optional">(opcional)</span></label>
-          <div class="file-drop" id="fileDrop"
-               onclick="document.getElementById('archivoAdjunto').click()"
-               ondragover="handleDragOver(event)"
-               ondragleave="handleDragLeave(event)"
-               ondrop="handleDrop(event)">
-            <i class="fa-solid fa-cloud-arrow-up file-drop-icon"></i>
-            <span>Arrastra un archivo aquí o <strong>haz clic para seleccionar</strong></span>
-            <small>PDF, DOC, DOCX, TXT, PNG, JPG &nbsp;·&nbsp; Máximo 10 MB</small>
-            <input type="file" id="archivoAdjunto"
-              accept=".pdf,.txt,.doc,.docx,.png,.jpg,.jpeg"
-              style="display:none"
-              onchange="handleFileSelect(this)" />
-          </div>
-          <div class="file-preview" id="filePreview" style="display:none">
-            <i class="fa-solid fa-file-circle-check"></i>
-            <span id="filePreviewName"></span>
-            <span id="filePreviewSize" class="file-size"></span>
-            <button type="button" class="file-remove" onclick="removeFile()" title="Quitar archivo">
-              <i class="fa-solid fa-xmark"></i>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div class="step-error" id="err3"></div>
-      <div class="step-nav">
-        <button class="btn-secondary" onclick="prevStep(3)"><i class="fa-solid fa-arrow-left"></i> Anterior</button>
-        <button class="btn-primary" onclick="nextStep(3)">Revisar <i class="fa-solid fa-arrow-right"></i></button>
-      </div>
-    </div>
-
-    <!-- ══════════════════════════════════════════════
-         STEP 4: Resumen
-    ══════════════════════════════════════════════ -->
-    <div class="step" id="step4">
-      <div class="step-header">
-        <div class="step-num"><i class="fa-solid fa-check"></i></div>
-        <div>
-          <h2>Resumen de la respuesta</h2>
-          <p>Verifique la información antes de registrar y enviar la notificación</p>
-        </div>
-      </div>
-
-      <div id="summaryContent" class="summary-grid"></div>
-
-      <div class="privacy-note">
-        <i class="fa-solid fa-bell"></i>
-        Al confirmar, se enviará una notificación por correo al usuario radicante y una copia al responsable del proceso.
-      </div>
-
-      <div class="step-error" id="err4"></div>
-      <div class="step-nav">
-        <button class="btn-secondary" onclick="prevStep(4)"><i class="fa-solid fa-arrow-left"></i> Editar</button>
-        <button class="btn-success btn-lg" id="submitBtn" onclick="submitRespuesta()">
-          <i class="fa-solid fa-paper-plane"></i> Registrar y Notificar
-        </button>
-      </div>
-    </div>
-
-    <!-- ══════════════════════════════════════════════
-         STEP 5: Éxito
-    ══════════════════════════════════════════════ -->
-    <div class="step" id="step5">
-      <div class="success-state">
-        <div class="success-anim">
-          <div class="success-circle"><i class="fa-solid fa-check"></i></div>
-        </div>
-        <h2>¡Respuesta registrada exitosamente!</h2>
-        <p>La respuesta ha sido guardada y se ha enviado una notificación al correo del usuario.</p>
-        <div class="ticket-box">
-          <span class="ticket-label">Radicado respondido</span>
-          <span class="ticket-number" id="ticketNumber">—</span>
-        </div>
-        <div id="emailSentNote" style="margin-bottom:20px;font-size:13px;color:#6b7280;"></div>
-        <button class="btn-primary mt-4" onclick="resetForm()">
-          <i class="fa-solid fa-rotate-right"></i> Registrar otra respuesta
-        </button>
-      </div>
-    </div>
-
-  </div><!-- /form-container -->
-</section>
-
-<!-- ── FOOTER ─────────────────────────────────────────────────── -->
-<footer class="site-footer">
-  <div class="footer-inner">
-    <img src="assets/logo.png" alt="Santa Bárbara" class="footer-logo" onerror="this.style.display='none'" />
-    <div>
-      <p><strong>Clínica de Alta Complejidad Santa Bárbara</strong></p>
-      <p>SIAU – Sistema de Información y Atención al Usuario</p>
-    </div>
-    <div class="footer-contact">
-      <a href="mailto:siau.red@cacsantabarbara.co"><i class="fa-solid fa-envelope"></i> siau.red@cacsantabarbara.co</a>
-    </div>
-  </div>
-</footer>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/app.js"></script>
+<script src="js/auth.js"></script>
 </body>
 </html>
