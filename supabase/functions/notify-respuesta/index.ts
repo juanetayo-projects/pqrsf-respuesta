@@ -54,13 +54,13 @@ function buildHtml(resp: Record<string, string>, rep: Record<string, string>): s
 
     <!-- HEADER -->
     <div style="background:linear-gradient(135deg,#0d2d6b 0%,#1a4f9b 55%,#2471c8 100%);
-                padding:36px 44px;text-align:center;">
+                padding:32px 44px 28px;text-align:center;">
+      <img src="https://juanetayo-projects.github.io/pqrsf-reporte/assets/logo-wide.png"
+           alt="Clínica de Alta Complejidad Santa Bárbara"
+           width="220" style="max-width:220px;height:auto;display:block;margin:0 auto 18px;" />
       <div style="color:rgba(255,255,255,.65);font-size:11px;letter-spacing:2px;
-                  text-transform:uppercase;margin-bottom:10px;">Sistema PQRSF</div>
-      <div style="color:#ffffff;font-size:22px;font-weight:700;line-height:1.3;">
-        Clínica de Alta Complejidad<br>Santa Bárbara
-      </div>
-      <div style="color:rgba(255,255,255,.65);font-size:12px;margin-top:8px;">
+                  text-transform:uppercase;margin-bottom:6px;">Sistema PQRSF</div>
+      <div style="color:rgba(255,255,255,.65);font-size:12px;">
         Respuesta Oficial a su Solicitud
       </div>
     </div>

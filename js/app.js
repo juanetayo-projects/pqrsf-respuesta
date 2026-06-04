@@ -9,7 +9,7 @@ let currentStep     = 1;
 const TOTAL_STEPS   = 4;   // pasos visibles (5 = éxito)
 let reporteActual   = null; // datos del reporte encontrado
 let selectedFile    = null;
-let currentUser     = null; // perfil de consola_perfiles
+let currentUser     = null; // sin autenticación — siempre null
 
 /* ── Colores y config por tipo ──────────────────────────────── */
 const TIPO_CONFIG = {
@@ -542,24 +542,8 @@ function setDateDefaults() {
 }
 
 /* ── Init ───────────────────────────────────────────────────── */
-document.addEventListener('DOMContentLoaded', async () => {
-  // 1. Guard: redirige a login si no hay sesión
-  const session = await requireAuth();
-  if (!session) return;
-
-  // 2. Cargar perfil del usuario
-  currentUser = await loadUserProfile();
-
-  // 3. Mostrar nombre y rol en el header
-  const nameEl = document.getElementById('headerUserName');
-  const roleEl = document.getElementById('headerUserRole');
-  if (nameEl) nameEl.textContent = currentUser?.nombre || session.user.email;
-  if (roleEl) {
-    const rol = (currentUser?.rol || '').toLowerCase();
-    roleEl.textContent = rol === 'admin' ? 'Administrador' :
-                         currentUser?.proceso ? currentUser.proceso : 'Analista';
-  }
-
+document.addEventListener('DOMContentLoaded', () => {
+  // Sin autenticación requerida — acceso directo
   renderStepIndicator();
   updateProgress();
 });
