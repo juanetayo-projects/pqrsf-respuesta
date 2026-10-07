@@ -533,7 +533,7 @@ function updateCharCount() {
   const len = document.getElementById('respuesta_texto').value.length;
   const el  = document.getElementById('charCount');
   el.textContent = len;
-  el.parentElement.classList.toggle('warn', len > 1800);
+  el.parentElement.classList.toggle('warn', len > 4500);
 }
 function setDateDefaults() {
   const hoy = new Date().toISOString().split('T')[0];
