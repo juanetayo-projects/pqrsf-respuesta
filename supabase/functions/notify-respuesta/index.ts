@@ -3,6 +3,34 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') ?? '';
 const FROM_EMAIL     = Deno.env.get('FROM_EMAIL') ?? 'PQRSF Santa Bárbara <notificaciones@cacsantabarbara.co>';
 const APP_URL        = 'https://juanetayo-projects.github.io/pqrsf-reporte/';
+const SUPABASE_URL   = Deno.env.get('SUPABASE_URL') ?? '';
+const SERVICE_KEY    = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+
+// Ventana para notificar una respuesta recién registrada. Fuera de ella solo se
+// permite con la service_role (reenvíos internos), para evitar abuso.
+const VENTANA_MS = 30 * 60 * 1000;
+
+/* ── Escapa HTML de los textos que vienen de formularios ────── */
+const esc = (v: unknown) => String(v)
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+function escapar(r: Record<string, unknown>): Record<string, string> {
+  return Object.fromEntries(Object.entries(r).map(([k, v]) => [k, v == null ? v : esc(v)])) as Record<string, string>;
+}
+
+async function cargar(tabla: string, id: number): Promise<Record<string, unknown> | null> {
+  if (!SUPABASE_URL || !SERVICE_KEY || !id) return null;
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${tabla}?id=eq.${id}&select=*`, {
+    headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` },
+  });
+  if (!res.ok) return null;
+  const rows = await res.json();
+  return rows?.[0] ?? null;
+}
+
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
+}
 
 const CORS = {
   'Access-Control-Allow-Origin' : '*',
@@ -175,33 +203,34 @@ serve(async (req) => {
   }
 
   try {
-    const { respuesta, reporte } = await req.json();
+    const body = await req.json();
+    // Solo se usan los datos guardados en la BD: el cliente únicamente indica el id de la respuesta.
+    const respGuardada = await cargar('respuestas_pqrsf', Number(body?.respuesta?.id));
+    if (!respGuardada) return json({ ok: false, error: 'Respuesta no encontrada' }, 404);
+    const repGuardado = await cargar('reportes_pqrsf', Number(respGuardada.reporte_id));
+    if (!repGuardado) return json({ ok: false, error: 'Radicado no encontrado' }, 404);
 
-    if (!reporte?.email_reporta) {
-      return new Response(
-        JSON.stringify({ ok: false, error: 'Sin correo del paciente' }),
-        { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } },
-      );
+    const esServicio = (req.headers.get('Authorization') ?? '') === `Bearer ${SERVICE_KEY}`;
+    const creada = new Date(String(respGuardada.created_at)).getTime();
+    if (!esServicio && !(Date.now() - creada < VENTANA_MS)) {
+      return json({ ok: false, error: 'La notificación solo se envía al registrar la respuesta' }, 403);
     }
 
-    const radicado  = `PQRSF-${String(reporte.id).padStart(6, '0')}`;
-    const subject   = `✅ Respuesta a su ${reporte.tipo_reporte ?? 'PQRSF'} – ${radicado}`;
+    const respuesta = escapar(respGuardada);
+    const reporte   = escapar(repGuardado);
 
-    // Destinatarios: paciente + copia al proceso
-    const destinatarios: string[] = [reporte.email_reporta];
-    if (reporte.correo_proceso) {
-      reporte.correo_proceso
-        .split(',')
-        .map((e: string) => e.trim())
-        .filter(Boolean)
-        .forEach((e: string) => {
-          if (!destinatarios.includes(e)) destinatarios.push(e);
-        });
+    if (!reporte.email_reporta) {
+      return json({ ok: false, error: 'Sin correo del paciente' }, 400);
     }
-    // Copia al respondedor
-    if (respuesta.respondido_por_email && !destinatarios.includes(respuesta.respondido_por_email)) {
-      destinatarios.push(respuesta.respondido_por_email);
-    }
+
+    const radicado  = `PQRSF-${String(repGuardado.id).padStart(6, '0')}`;
+    const subject   = `✅ Respuesta a su ${repGuardado.tipo_reporte ?? 'PQRSF'} – ${radicado}`;
+
+    // Destinatarios: paciente + copia al proceso + copia al respondedor
+    const destinatarios: string[] = [String(repGuardado.email_reporta).trim()];
+    const agregar = (e: string) => { if (e && !destinatarios.includes(e)) destinatarios.push(e); };
+    String(repGuardado.correo_proceso ?? '').split(',').map((e) => e.trim()).forEach(agregar);
+    agregar(String(respGuardada.respondido_por_email ?? '').trim());
 
     const resendRes = await fetch('https://api.resend.com/emails', {
       method : 'POST',
@@ -218,16 +247,9 @@ serve(async (req) => {
     });
 
     const result = await resendRes.json();
-
-    return new Response(
-      JSON.stringify({ ok: resendRes.ok, result }),
-      { headers: { ...CORS, 'Content-Type': 'application/json' } },
-    );
+    return json({ ok: resendRes.ok, result });
 
   } catch (err) {
-    return new Response(
-      JSON.stringify({ ok: false, error: String(err) }),
-      { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } },
-    );
+    return json({ ok: false, error: String(err) }, 500);
   }
 });
